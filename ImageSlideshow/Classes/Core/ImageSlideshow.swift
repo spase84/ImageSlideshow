@@ -36,9 +36,11 @@ public enum PageControlPosition {
 ///
 /// - fixed: preload only fixed number of images before and after the current image
 /// - all: preload all images in the slideshow
+/// - oneByOne: preload only first image (load each next image after paging to this image)
 public enum ImagePreload {
     case fixed(offset: Int)
     case all
+		case oneByOne
 }
 
 /// Main view containing the Image Slideshow
@@ -140,7 +142,7 @@ open class ImageSlideshow: UIView {
     }
 
     /// Image preload configuration, can be sed to .fixed to enable lazy load or .all
-    open var preload = ImagePreload.all
+		open var preload: ImagePreload = .all
 
     /// Content mode of each image in the slideshow
     open var contentScaleMode: UIViewContentMode = UIViewContentMode.scaleAspectFit {
@@ -283,6 +285,10 @@ open class ImageSlideshow: UIView {
                 // load image if page is in range of loadOffset, else release image
                 let shouldLoad = abs(scrollViewPage-i) <= offset || abs(scrollViewPage-i) > totalCount-offset || circularEdgeLoad
                 shouldLoad ? item.loadImage() : item.releaseImage()
+						case .oneByOne:
+							if 0 == i || scrollViewPage > 0 { // load image for first "slide"
+								item.loadImage()
+							}
             }
         }
     }
@@ -319,6 +325,13 @@ open class ImageSlideshow: UIView {
         layoutPageControl()
         setTimerIfNeeded()
     }
+	
+		open func cancelLoadingSources() {
+			self.images.map { (inputSource) -> InputSource in
+				inputSource.stopDownloading()
+				return inputSource
+			}
+		}
 
     // MARK: paging methods
 
@@ -460,6 +473,14 @@ extension ImageSlideshow: UIScrollViewDelegate {
     open func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         setPrimaryVisiblePage()
         didEndDecelerating?()
+			switch self.preload {
+			case .oneByOne:
+				let newPage = Int(scrollView.contentOffset.x + scrollView.frame.size.width / 2) / Int(scrollView.frame.size.width)
+				self.loadImages(for: newPage)
+				break
+			default:
+				break
+			}
     }
 
     open func scrollViewDidScroll(_ scrollView: UIScrollView) {

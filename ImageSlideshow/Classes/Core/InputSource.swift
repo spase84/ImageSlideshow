@@ -17,6 +17,8 @@ import UIKit
      - parameter image: Image that was set to the image view.
      */
     func load(to imageView: UIImageView, with callback: @escaping (_ image: UIImage?) -> Void)
+	
+		func stopDownloading()
 }
 
 /// Input Source to load plain UIImage
@@ -45,4 +47,8 @@ open class ImageSource: NSObject, InputSource {
         imageView.image = image
         callback(image)
     }
+	
+	public func stopDownloading() {
+		
+	}
 }
